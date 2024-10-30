@@ -1,3 +1,12 @@
+/*
+#################################################
+#  Raphael A. Surmacz (GRR20213405)
+#
+#  Isabela Barata (GRR2021)
+#################################################
+*/
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -44,6 +53,5 @@ int main() {
    imprimeMatriz(matriz, linhas, colunas);
 
    freeMatriz(matriz, linhas);
-
    return 0;
 }
