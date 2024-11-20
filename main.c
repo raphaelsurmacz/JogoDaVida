@@ -9,6 +9,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <time.h>
+#include <stdbool.h>
+
+typedef struct{
+   int **atual;
+   int linhas;
+   int colunas;
+} t_estado;
 
 void imprimeMatriz(int** matriz, int linhas, int colunas){
    for(int i = 0; i < linhas; i++) {
@@ -22,15 +31,12 @@ void imprimeMatriz(int** matriz, int linhas, int colunas){
 int** lerMatriz(int* linhas, int* colunas){
    scanf("%d %d", linhas, colunas);
 
-   // Aloca as linhas
    int **matriz = malloc(*linhas * sizeof(int*));
 
-   // Aloca as colunas
    for(int i = 0; i < *linhas; i++) {
       matriz[i] = malloc(*colunas * sizeof(int));
    }
    
-   // Lê a matriz
    for(int i = 0; i < *linhas; i++) {
       for(int j = 0; j < *colunas; j++) {
          scanf("%d", &matriz[i][j]);
@@ -46,12 +52,29 @@ void freeMatriz(int** matriz, int linhas){
    free(matriz);
 }
 
+t_estado **simulatedAnnealing(t_estado *estado){
+   //Parametros da tempera
+   double temperatura_inicial = 1000.0;
+   double temperatura_final = 0.001;
+   double taxa_resfriamento = 0.98;
+   double iteracoes = estado->linhas * estado->colunas * 2;
+   
+}
+
 int main() {
    int linhas, colunas;
-
    int** matriz = lerMatriz(&linhas, &colunas);
-   imprimeMatriz(matriz, linhas, colunas);
 
+   // Criacao do estado atual
+   t_estado estado_atual = {
+      matriz,
+      linhas,
+      colunas
+   }; 
+
+   int **estado_anterior = simulatedAnnealing(&estado_atual);
+
+   imprimeMatriz(estado_anterior, linhas, colunas);
    freeMatriz(matriz, linhas);
    return 0;
 }
