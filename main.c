@@ -19,13 +19,30 @@ typedef struct{
    int colunas;
 } t_estado;
 
-void imprimeMatriz(int** matriz, int linhas, int colunas){
-   for(int i = 0; i < linhas; i++) {
+void imprimeMatriz(int** matriz, int linhas, int colunas, char *nome_arquivo){
+
+   FILE *arquivo = fopen(nome_arquivo, "w");
+   fprintf(arquivo, "%d %d\n", linhas, colunas);
+   fclose(arquivo);
+
+
+   FILE *arquivo2 = fopen(nome_arquivo, "a");
+
+   for(int i = 0; i < linhas; i++){
       for(int j = 0; j < colunas; j++) {
          printf("%d ", matriz[i][j]);
       }
       printf("\n");
    }
+
+   for(int i = 0; i < linhas; i++){
+      for(int j = 0; j < colunas; j++) {
+         fprintf(arquivo2, "%d ", matriz[i][j]);
+      }
+      fprintf(arquivo2, "\n");
+   }
+
+   fclose(arquivo2);
 }
 
 int** lerMatriz(int* linhas, int* colunas){
@@ -101,7 +118,7 @@ int calculaCusto(int **anterior, int** atual, int linhas, int colunas){
    geraProximoEstado(anterior, proximo, linhas, colunas);
 
    const double PESO_DIF = 1.0;
-   const double PESO_VIVAS = 0.3;
+   const double PESO_VIVAS = 0.5;
 
    int diferencas = 0;
    for(int i = 0; i < linhas; i++)
@@ -136,10 +153,10 @@ void geraEstadoVizinho(int **base, int **vizinho, int linhas, int colunas){
 
 int** simulatedAnnealing(t_estado *estado){
    //Parametros da tempera
-   double temperatura_inicial = 2000.0;
-   double temperatura_final = 0.0001;
+   double temperatura_inicial = 1000.0;
+   double temperatura_final = 0.001;
    double taxa_resfriamento = 0.98;
-   double iteracoes = estado->linhas * estado->colunas * 2;
+   double iteracoes = estado->linhas * estado->colunas * 5;
    
    int **melhor_estado = malloc(estado->linhas * sizeof(int*));
    int **estado_atual = malloc(estado->linhas * sizeof(int*));
@@ -151,8 +168,8 @@ int** simulatedAnnealing(t_estado *estado){
       estado_vizinho[i] = malloc(estado->colunas * sizeof(int));
 
       for (int j = 0; j < estado->colunas; j++){ //Gera um estado aleatorio
-         estado_atual[i][j] = rand() % 2;
-         melhor_estado[i][j] = rand() % 2;
+         estado_atual[i][j] = (rand() % 3 == 0) ? 1 : 0;
+         melhor_estado[i][j] = (rand() % 3 == 0) ? 1 : 0;
       }
    }
 
@@ -179,32 +196,6 @@ int** simulatedAnnealing(t_estado *estado){
                for (int j = 0; j < estado->colunas; j++) 
                      melhor_estado[i][j] = estado_atual[i][j];    
          }
-/*
-         bool aceitar = false;
-         if(custo_vizinho < melhor_custo)
-            aceitar = true;
-         else if(custo_vizinho == melhor_custo && num_vivas_vizinho < melhor_num_vivas)
-            aceitar = true;
-         else if ( (rand() / (double)RAND_MAX) < exp((melhor_custo - custo_vizinho) / temperatura) )
-            aceitar = true;
-         
-         if (aceitar){
-            for (int i = 0; i < estado->linhas; i++) {
-               for (int j = 0; j < estado->colunas; j++) {
-                  estado_atual[i][j] = estado_vizinho[i][j];
-               }
-            }
-         }
-
-         if (custo_vizinho <= melhor_custo && num_vivas_vizinho <= melhor_num_vivas){
-            melhor_custo = custo_vizinho;
-            melhor_num_vivas = num_vivas_vizinho;
-
-            for(int i = 0; i < estado->linhas; i++)
-               for (int j = 0; j < estado->colunas; j++) 
-                  melhor_estado[i][j] = estado_atual[i][j];
-         }
-*/
       }
       temperatura *= taxa_resfriamento;
    }
@@ -225,6 +216,7 @@ int main() {
 
    int linhas, colunas;
    int** matriz = lerMatriz(&linhas, &colunas);
+   char *nome_arquivo = "teste.txt";
 
    // Criacao do estado atual
    t_estado estado_atual = {
@@ -234,8 +226,14 @@ int main() {
    }; 
 
    int **estado_anterior = simulatedAnnealing(&estado_atual);
+   imprimeMatriz(estado_anterior, linhas, colunas, nome_arquivo);
 
-   imprimeMatriz(estado_anterior, linhas, colunas);
+
+   if (system("gcc teste.c") == 0){
+      system("./a.out < teste.txt");
+   }else{
+      return 1;
+   }
    
    freeMatriz(matriz, linhas);
    freeMatriz(estado_anterior, linhas);

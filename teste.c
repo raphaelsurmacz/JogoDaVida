@@ -54,7 +54,7 @@ int main() {
     proximoEstado(atual, proximo, linhas, colunas);
 
     // Imprimir o próximo estado
-    printf("Próximo estado:\n");
+    printf("\nPróximo estado:\n");
     for (int i = 0; i < linhas; i++) {
         for (int j = 0; j < colunas; j++) {
             printf("%d ", proximo[i][j]);
