@@ -12,6 +12,7 @@
 #include <math.h>
 #include <time.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 typedef struct{
    int **atual;
@@ -118,7 +119,7 @@ int calculaCusto(int **anterior, int** atual, int linhas, int colunas){
    geraProximoEstado(anterior, proximo, linhas, colunas);
 
    const double PESO_DIF = 1.0;
-   const double PESO_VIVAS = 0.5;
+   const double PESO_VIVAS = 0.7 ;
 
    int diferencas = 0;
    for(int i = 0; i < linhas; i++)
@@ -141,7 +142,7 @@ void geraEstadoVizinho(int **base, int **vizinho, int linhas, int colunas){
       for (int j = 0; j < colunas; j++)
          vizinho[i][j] = base[i][j];
       
-   int mudancas = rand() % (linhas * colunas / 4 + 1) + 1;
+   int mudancas = rand() % (linhas * colunas / 3 + 1) + 1;
    for (int h = 0; h < mudancas; h++){
       int i = rand() % linhas;
       int j = rand() % colunas;
@@ -155,7 +156,7 @@ int** simulatedAnnealing(t_estado *estado){
    //Parametros da tempera
    double temperatura_inicial = 1000.0;
    double temperatura_final = 0.001;
-   double taxa_resfriamento = 0.98;
+   double taxa_resfriamento = 0.95;
    double iteracoes = estado->linhas * estado->colunas * 5;
    
    int **melhor_estado = malloc(estado->linhas * sizeof(int*));
@@ -229,11 +230,9 @@ int main() {
    imprimeMatriz(estado_anterior, linhas, colunas, nome_arquivo);
 
 
-   if (system("gcc teste.c") == 0){
-      system("./a.out < teste.txt");
-   }else{
-      return 1;
-   }
+   system("gcc teste.c");
+   system("./a.out < teste.txt");
+
    
    freeMatriz(matriz, linhas);
    freeMatriz(estado_anterior, linhas);

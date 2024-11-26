@@ -9,7 +9,7 @@ TARGET = programa
 
 SRC = main.c
 
-OBJ = main.o a.out
+OBJ = main.o
 
 all: $(TARGET)
 
