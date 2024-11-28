@@ -5,7 +5,7 @@ CFLAGS = -Wall -Wextra
 
 LDFLAGS = -lm
 
-TARGET = programa
+TARGET = main
 
 SRC = main.c
 

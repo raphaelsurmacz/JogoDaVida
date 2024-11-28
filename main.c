@@ -6,7 +6,6 @@
 #################################################
 */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -119,7 +118,7 @@ int calculaCusto(int **anterior, int** atual, int linhas, int colunas){
    geraProximoEstado(anterior, proximo, linhas, colunas);
 
    const double PESO_DIF = 1.0;
-   const double PESO_VIVAS = 0.7 ;
+   const double PESO_VIVAS = 0.4 ;
 
    int diferencas = 0;
    for(int i = 0; i < linhas; i++)
@@ -137,12 +136,11 @@ int calculaCusto(int **anterior, int** atual, int linhas, int colunas){
    return custo;   
 }
 
-void geraEstadoVizinho(int **base, int **vizinho, int linhas, int colunas){
+void geraEstadoVizinho(int **base, int **vizinho, int linhas, int colunas, int mudancas){
    for (int i = 0; i < linhas; i++)
       for (int j = 0; j < colunas; j++)
          vizinho[i][j] = base[i][j];
       
-   int mudancas = rand() % (linhas * colunas / 3 + 1) + 1;
    for (int h = 0; h < mudancas; h++){
       int i = rand() % linhas;
       int j = rand() % colunas;
@@ -151,13 +149,48 @@ void geraEstadoVizinho(int **base, int **vizinho, int linhas, int colunas){
    }
 }
 
+void configuraParametros(int linhas, int colunas, double *temperatura_inicial, double *temperatura_final,
+                                                double *taxa_resfriamento, int *iteracoes, int *mudancas){
+   int tam = linhas * colunas;
+   if (tam <= 100){  //ate 10x10
+      *temperatura_inicial = 2000.0;   // ~ 0.95 de probabilidade da escolha de um pior
+      *temperatura_final = 0.001;
+      *taxa_resfriamento = 0.97;
+      *iteracoes = 5 * tam;
+      *mudancas = (tam / 20 > 5) ? 20 : 5;  
+   }else if(tam <= 225){   //ate 15x15
+      *temperatura_inicial = 3000.0;   // ~ 0.96 de probabilidade da escolha de um pior
+      *temperatura_final = 0.005;
+      *taxa_resfriamento = 0.98;
+      *iteracoes = 7 * tam;
+      *mudancas = (tam / 20 > 10) ? 20 : 10;  
+   }else if(tam <= 400){   //ate 20x20
+      *temperatura_inicial = 4000.0;   // ~ 0.97 de probabilidade da escolha de um pior
+      *temperatura_final = 0.01;
+      *taxa_resfriamento = 0.98;
+      *iteracoes = 8 * tam;
+      *mudancas = (tam / 20 > 15) ? 20 : 15;  
+   }else{
+      *temperatura_inicial = 5000.0;   // ~ 0.98/0.99 de probabilidade da escolha de um pior
+      *temperatura_final = 0.01;
+      *taxa_resfriamento = 0.99;
+      *iteracoes = 10 * tam;
+      *mudancas = (tam / 20 > 20) ? 20 : 20;  
+   }
+}
 
 int** simulatedAnnealing(t_estado *estado){
    //Parametros da tempera
-   double temperatura_inicial = 1000.0;
-   double temperatura_final = 0.001;
-   double taxa_resfriamento = 0.95;
-   double iteracoes = estado->linhas * estado->colunas * 5;
+   double temperatura_inicial = 1.0;
+   double temperatura_final = 0.1;
+   double taxa_resfriamento = 0.1;
+   int iteracoes = 1;
+   int mudancas = 1;
+
+   configuraParametros(estado->linhas, estado->colunas, &temperatura_inicial, &temperatura_final,
+                                                                  &taxa_resfriamento, &iteracoes, &mudancas);
+
+   //printf("\nParametros:\n %f\n%f\n%f\n%d\n%d\n", temperatura_inicial, temperatura_final, taxa_resfriamento, iteracoes, mudancas);
    
    int **melhor_estado = malloc(estado->linhas * sizeof(int*));
    int **estado_atual = malloc(estado->linhas * sizeof(int*));
@@ -170,7 +203,7 @@ int** simulatedAnnealing(t_estado *estado){
 
       for (int j = 0; j < estado->colunas; j++){ //Gera um estado aleatorio
          estado_atual[i][j] = (rand() % 3 == 0) ? 1 : 0;
-         melhor_estado[i][j] = (rand() % 3 == 0) ? 1 : 0;
+         melhor_estado[i][j] = 0;
       }
    }
 
@@ -180,12 +213,13 @@ int** simulatedAnnealing(t_estado *estado){
 
    while (temperatura > temperatura_final){
       for (int i = 0; i < iteracoes; i++){
-         geraEstadoVizinho(estado_atual, estado_vizinho, estado->linhas, estado->colunas);
+         geraEstadoVizinho(estado_atual, estado_vizinho, estado->linhas, estado->colunas, mudancas);
 
          double custo_vizinho = calculaCusto(estado_vizinho, estado->atual, estado->linhas, estado->colunas);
          //int num_vivas_vizinho = contaCelulasVivas(estado_vizinho, estado->linhas, estado->colunas);
 
-         if( custo_vizinho < melhor_custo || (rand() / (double)RAND_MAX) < exp((melhor_custo - custo_vizinho) / temperatura) ){ //Probabilidade de ceitar o pior
+         if( custo_vizinho < melhor_custo ||
+            (rand() / (double)RAND_MAX) < exp((melhor_custo - custo_vizinho) / temperatura) ){ //Probabilidade de ceitar o pior
             for (int i = 0; i < estado->linhas; i++)
                for (int j = 0; j < estado->colunas; j++)
                   estado_atual[i][j] = estado_vizinho[i][j];
