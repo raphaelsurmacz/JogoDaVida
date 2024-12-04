@@ -223,9 +223,9 @@ int** simulatedAnnealing(t_estado *estado){
             for (int i = 0; i < estado->linhas; i++)
                for (int j = 0; j < estado->colunas; j++)
                   estado_atual[i][j] = estado_vizinho[i][j];
-         }
-         if(custo_vizinho < melhor_custo){
+
             melhor_custo = custo_vizinho;
+            
             // Atualiza melhor estado
             for (int i = 0; i < estado->linhas; i++)
                for (int j = 0; j < estado->colunas; j++) 
@@ -260,9 +260,15 @@ int main() {
       colunas
    }; 
 
+   clock_t t;
+   t = clock();
    int **estado_anterior = simulatedAnnealing(&estado_atual);
    imprimeMatriz(estado_anterior, linhas, colunas, nome_arquivo);
 
+   t = clock() - t;
+   double time_taken = ((double)t / CLOCKS_PER_SEC);
+
+   printf("Tempo:\t %f", time_taken);
 
    system("gcc teste.c");
    system("./a.out < teste.txt");
