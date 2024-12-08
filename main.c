@@ -12,14 +12,16 @@
 #include <time.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <stdint.h>
+#include <string.h>
 
 typedef struct{
-   int **atual;
+   uint8_t **atual;
    int linhas;
    int colunas;
 } t_estado;
 
-void imprimeMatriz(int** matriz, int linhas, int colunas, char *nome_arquivo){
+void imprimeMatriz(uint8_t** matriz, int linhas, int colunas, char *nome_arquivo){
 
    FILE *arquivo = fopen(nome_arquivo, "w");
    fprintf(arquivo, "%d %d\n", linhas, colunas);
@@ -45,31 +47,31 @@ void imprimeMatriz(int** matriz, int linhas, int colunas, char *nome_arquivo){
    fclose(arquivo2);
 }
 
-int** lerMatriz(int* linhas, int* colunas){
+int8_t** lerMatriz(int* linhas, int* colunas){
    scanf("%d %d", linhas, colunas);
 
-   int **matriz = malloc(*linhas * sizeof(int*));
+   uint8_t **matriz = malloc(*linhas * sizeof(uint8_t*));
 
    for(int i = 0; i < *linhas; i++) {
-      matriz[i] = malloc(*colunas * sizeof(int));
+      matriz[i] = malloc(*colunas * sizeof(uint8_t));
    }
    
    for(int i = 0; i < *linhas; i++) {
       for(int j = 0; j < *colunas; j++) {
-         scanf("%d", &matriz[i][j]);
+         scanf("%hhd", &matriz[i][j]);
       }
    }
    return matriz;
 }
 
-void freeMatriz(int** matriz, int linhas){
+void freeMatriz(uint8_t** matriz, int linhas){
    for(int i = 0; i < linhas; i++){
       free(matriz[i]);
    }
    free(matriz);
 }
 
-int contaVizinhosVivos(int **atual, int linhas, int colunas, int i, int j){
+int contaVizinhosVivos(uint8_t **atual, int linhas, int colunas, int i, int j){
    int vizinhos = 0;
    int dx[] = {-1, -1, -1, 0, 0, 1, 1, 1};
    int dy[] = {-1, 0, 1, -1, 1, -1, 0, 1};
@@ -84,7 +86,7 @@ int contaVizinhosVivos(int **atual, int linhas, int colunas, int i, int j){
    return vizinhos;
 }
 
-void geraProximoEstado(int **atual, int **proximo, int linhas, int colunas){
+void geraProximoEstado(uint8_t **atual, uint8_t **proximo, int linhas, int colunas){
    for (int i = 0; i < linhas; i++){
       for (int j = 0; j < colunas; j++){
          int vizinhos = contaVizinhosVivos(atual, linhas, colunas, i, j);
@@ -97,7 +99,7 @@ void geraProximoEstado(int **atual, int **proximo, int linhas, int colunas){
    } 
 }
 
-int contaCelulasVivas(int **matriz, int linhas, int colunas){
+int contaCelulasVivas(uint8_t **matriz, int linhas, int colunas){
    int qtd_celulas_vivas = 0;
    for (int i = 0; i < linhas; i++)
       for (int j = 0; j < colunas; j++)
@@ -107,36 +109,54 @@ int contaCelulasVivas(int **matriz, int linhas, int colunas){
    return qtd_celulas_vivas;
 }
 
-int calculaCusto(int **anterior, int** atual, int linhas, int colunas){
-   double custo = 0;
-   
-   int **proximo = malloc(linhas * sizeof(int*));
+double calculaCusto(uint8_t **anterior, uint8_t** atual, int linhas, int colunas){
+   uint8_t **proximo = malloc(linhas * sizeof(uint8_t*));
    for (int i = 0; i < linhas; i++)
-      proximo[i] = malloc(colunas * sizeof(int));
-   
+      proximo[i] = malloc(colunas * sizeof(uint8_t));
 
    geraProximoEstado(anterior, proximo, linhas, colunas);
 
-   const double PESO_DIF = 1.0;
-   const double PESO_VIVAS = 0.4 ;
+   const double PESO_DIF = 1.5;
+   const double PESO_VIVAS = 0.5;     
+   const double PESO_ESTABILIDADE = 1.0;
+   const double PESO_PROXIMIDADE = 0.75;
 
    int diferencas = 0;
+   int diferencas_adjacentes = 0;
+   
    for(int i = 0; i < linhas; i++)
-      for (int j = 0; j < colunas; j++)
-         if(proximo[i][j] != atual[i][j])
+      for (int j = 0; j < colunas; j++){
+         if(proximo[i][j] != atual[i][j]){
             diferencas++;
+            
+            int dx[] = {-1, -1, -1, 0, 0, 1, 1, 1};
+            int dy[] = {-1, 0, 1, -1, 1, -1, 0, 1};
+            
+            for (int k = 0; k < 8; k++){
+               int novo_x = i + dx[k];
+               int novo_y = j + dy[k];
+               
+               if (novo_x >= 0 && novo_x < linhas && novo_y >= 0 && novo_y < colunas){
+                  if (proximo[novo_x][novo_y] != atual[novo_x][novo_y])
+                     diferencas_adjacentes++;
+               }
+            }
+         }
+      }
 
    int celulas_vivas = contaCelulasVivas(anterior, linhas, colunas);
-   custo = ( (PESO_DIF * diferencas) + (PESO_VIVAS * celulas_vivas) );
 
-   for (int i = 0; i < linhas; i++)
-      free(proximo[i]);
-   free(proximo);
+   double estabilidade = 1.0 - ((double)diferencas / (linhas * colunas));
+
+   double custo = ( (PESO_DIF * diferencas) + (PESO_VIVAS * celulas_vivas) + (PESO_ESTABILIDADE * estabilidade)
+                                                                  + (PESO_PROXIMIDADE * diferencas_adjacentes));
+
+   freeMatriz(proximo, linhas);
 
    return custo;   
 }
 
-void geraEstadoVizinho(int **base, int **vizinho, int linhas, int colunas, int mudancas){
+void geraEstadoVizinho(uint8_t **base, uint8_t **vizinho, int linhas, int colunas, int mudancas){
    for (int i = 0; i < linhas; i++)
       for (int j = 0; j < colunas; j++)
          vizinho[i][j] = base[i][j];
@@ -155,7 +175,6 @@ void geraEstadoVizinho(int **base, int **vizinho, int linhas, int colunas, int m
       }
    }
    free(selecionadas);
-   
 }
 
 void configuraParametros(int linhas, int colunas, double *temperatura_inicial, double *temperatura_final,
@@ -163,19 +182,19 @@ void configuraParametros(int linhas, int colunas, double *temperatura_inicial, d
    int tam = linhas * colunas;
    if (tam <= 100){  //ate 10x10
       *temperatura_inicial = 2000.0;   // ~ 0.95 de probabilidade da escolha de um pior
-      *temperatura_final = 0.001;
-      *taxa_resfriamento = 0.97;
+      *temperatura_final = 0.0001;
+      *taxa_resfriamento = 0.98;
       *iteracoes = 5 * tam;
       *mudancas = (tam / 20 > 5) ? 20 : 5;  
    }else if(tam <= 225){   //ate 15x15
       *temperatura_inicial = 3000.0;   // ~ 0.96 de probabilidade da escolha de um pior
-      *temperatura_final = 0.005;
+      *temperatura_final = 0.0001;
       *taxa_resfriamento = 0.98;
       *iteracoes = 7 * tam;
       *mudancas = (tam / 20 > 10) ? 20 : 10;  
    }else if(tam <= 400){   //ate 20x20
       *temperatura_inicial = 4000.0;   // ~ 0.97 de probabilidade da escolha de um pior
-      *temperatura_final = 0.01;
+      *temperatura_final = 0.001;
       *taxa_resfriamento = 0.98;
       *iteracoes = 8 * tam;
       *mudancas = (tam / 20 > 15) ? 20 : 15;  
@@ -187,218 +206,8 @@ void configuraParametros(int linhas, int colunas, double *temperatura_inicial, d
       *mudancas = (tam / 20 > 20) ? 20 : 20;  
    }
 }
-/*
-int** hillClimbing(t_estado *estado, int** estado_sa){
-   int **melhor_estado = malloc(estado->linhas * sizeof(int*));
-   int **estado_atual = malloc(estado->linhas * sizeof(int*));
-   
-   for(int i = 0; i < estado->linhas; i++){
-      melhor_estado[i] = malloc(estado->colunas * sizeof(int));
-      estado_atual[i] = malloc(estado->colunas * sizeof(int));
-   }
 
-   // Copia o estado do SA
-   for (int i = 0; i < estado->linhas; i++)
-      for (int j = 0; j < estado->colunas; j++) 
-         estado_atual[i][j] = estado_sa[i][j];
-
-   int melhor_num_vivas = contaCelulasVivas(estado_atual, estado->linhas, estado->colunas);
-
-   // Estratégia: remover células sistematicamente
-   for (int i = 0; i < estado->linhas; i++) {
-      for (int j = 0; j < estado->colunas; j++) {
-         if (estado_atual[i][j] == 1) {
-            // Tenta remover cada célula viva
-            estado_atual[i][j] = 0;
-            
-            // Verifica se a remoção mantém a evolução correta
-            int **proximo = malloc(estado->linhas * sizeof(int*));
-            for (int k = 0; k < estado->linhas; k++)
-               proximo[k] = malloc(estado->colunas * sizeof(int));
-            
-            geraProximoEstado(estado_atual, proximo, estado->linhas, estado->colunas);
-            
-            bool estado_valido = true;
-            for (int k = 0; k < estado->linhas; k++) {
-               for (int l = 0; l < estado->colunas; l++) {
-                  if (proximo[k][l] != estado->atual[k][l]) {
-                     estado_valido = false;
-                     break;
-                  }
-               }
-               if (!estado_valido) break;
-            }
-            
-            // Libera memória do próximo estado
-            for (int k = 0; k < estado->linhas; k++)
-               free(proximo[k]);
-            free(proximo);
-            
-            // Se remoção for válida, atualiza o estado
-            if (estado_valido) {
-               int num_vivas_atual = contaCelulasVivas(estado_atual, estado->linhas, estado->colunas);
-               if (num_vivas_atual < melhor_num_vivas) {
-                  for (int k = 0; k < estado->linhas; k++)
-                     for (int l = 0; l < estado->colunas; l++)
-                        melhor_estado[k][l] = estado_atual[k][l];
-                  
-                  melhor_num_vivas = num_vivas_atual;
-               }
-            } else {
-               // Restaura a célula se a remoção invalidar o estado
-               estado_atual[i][j] = 1;
-            }
-         }
-      }
-   }
-
-   // Libera memória do estado atual
-   for (int i = 0; i < estado->linhas; i++)
-      free(estado_atual[i]);
-   free(estado_atual);
-   
-   return melhor_estado;
-}
-
-int** hillClimbing(t_estado *estado, int** estado_sa){
-   // Alocação segura
-   int **melhor_estado = malloc(estado->linhas * sizeof(int*));
-   int **estado_atual = malloc(estado->linhas * sizeof(int*));
-   
-   for(int i = 0; i < estado->linhas; i++){
-      melhor_estado[i] = malloc(estado->colunas * sizeof(int));
-      estado_atual[i] = malloc(estado->colunas * sizeof(int));
-   }
-
-   // Copia o estado do SA com verificação
-   for (int i = 0; i < estado->linhas; i++)
-      for (int j = 0; j < estado->colunas; j++) 
-         estado_atual[i][j] = estado_sa[i][j];
-
-   int melhor_num_vivas = contaCelulasVivas(estado_atual, estado->linhas, estado->colunas);
-
-   // Cria estado de próximo passo FORA do loop
-   int **proximo = malloc(estado->linhas * sizeof(int*));
-   for (int k = 0; k < estado->linhas; k++)
-      proximo[k] = malloc(estado->colunas * sizeof(int));
-
-   // Estratégia: remover células sistematicamente
-   for (int i = 0; i < estado->linhas; i++) {
-      for (int j = 0; j < estado->colunas; j++) {
-         if (estado_atual[i][j] == 1) {
-            // Tenta remover cada célula viva
-            estado_atual[i][j] = 0;
-            
-            // Verifica próximo estado
-            geraProximoEstado(estado_atual, proximo, estado->linhas, estado->colunas);
-            
-            bool estado_valido = true;
-            for (int k = 0; k < estado->linhas; k++) {
-               for (int l = 0; l < estado->colunas; l++) {
-                  if (proximo[k][l] != estado->atual[k][l]) {
-                     estado_valido = false;
-                     break;
-                  }
-               }
-               if (!estado_valido) break;
-            }
-            
-            // Se remoção for válida, atualiza o estado
-            if (estado_valido) {
-               int num_vivas_atual = contaCelulasVivas(estado_atual, estado->linhas, estado->colunas);
-               if (num_vivas_atual < melhor_num_vivas) {
-                  for (int k = 0; k < estado->linhas; k++)
-                     for (int l = 0; l < estado->colunas; l++)
-                        melhor_estado[k][l] = estado_atual[k][l];
-                  
-                  melhor_num_vivas = num_vivas_atual;
-               }
-            } else {
-               // Restaura a célula se a remoção invalidar o estado
-               estado_atual[i][j] = 1;
-            }
-         }
-      }
-   }
-
-   // Libera memória do próximo estado
-   for (int k = 0; k < estado->linhas; k++)
-      free(proximo[k]);
-   free(proximo);
-
-   // Libera memória do estado atual se não for usado
-   for (int i = 0; i < estado->linhas; i++)
-      free(estado_atual[i]);
-   free(estado_atual);
-   
-   return melhor_estado;
-}
-*/
-
-int** hillClimbing(t_estado *estado, int** estado_sa){
-   int **melhor_estado = malloc(estado->linhas * sizeof(int*));
-   int **estado_atual = malloc(estado->linhas * sizeof(int*));
-   
-   for(int i = 0; i < estado->linhas; i++){
-      melhor_estado[i] = malloc(estado->colunas * sizeof(int));
-      estado_atual[i] = malloc(estado->colunas * sizeof(int));
-   }
-
-   // Copia o estado do SA
-   for (int i = 0; i < estado->linhas; i++)
-      for (int j = 0; j < estado->colunas; j++) 
-         estado_atual[i][j] = estado_sa[i][j];
-
-   int melhor_num_vivas = contaCelulasVivas(estado_atual, estado->linhas, estado->colunas);
-
-   int **proximo = malloc(estado->linhas * sizeof(int*));
-   for (int k = 0; k < estado->linhas; k++)
-      proximo[k] = malloc(estado->colunas * sizeof(int));
-
-   for (int i = 0; i < estado->linhas; i++) {
-      for (int j = 0; j < estado->colunas; j++) {
-         if (estado_atual[i][j] == 1) {
-            estado_atual[i][j] = 0;
-            geraProximoEstado(estado_atual, proximo, estado->linhas, estado->colunas);
-            
-            bool estado_valido = true;
-            for (int k = 0; k < estado->linhas; k++) {
-               for (int l = 0; l < estado->colunas; l++) {
-                  if (proximo[k][l] != estado->atual[k][l]) {
-                     estado_valido = false;
-                     break;
-                  }
-               }
-               if (!estado_valido) break;
-            }
-            
-            if (estado_valido) {
-               int num_vivas_atual = contaCelulasVivas(estado_atual, estado->linhas, estado->colunas);
-               if (num_vivas_atual < melhor_num_vivas) {
-                  for (int k = 0; k < estado->linhas; k++)
-                     for (int l = 0; l < estado->colunas; l++)
-                        melhor_estado[k][l] = estado_atual[k][l];
-                  
-                  melhor_num_vivas = num_vivas_atual;
-               }
-            } else {
-               estado_atual[i][j] = 1;
-            }
-         }
-      }
-   }
-
-   for (int k = 0; k < estado->linhas; k++)
-      free(proximo[k]);
-   free(proximo);
-
-   for (int i = 0; i < estado->linhas; i++)
-      free(estado_atual[i]);
-   free(estado_atual);
-   
-   return melhor_estado; // Certifique-se de liberar essa memória no chamador
-}
-int** simulatedAnnealing(t_estado *estado){
+uint8_t** simulatedAnnealing(t_estado *estado){
    //Parametros da tempera
    double temperatura_inicial = 1.0;
    double temperatura_final = 0.1;
@@ -407,23 +216,23 @@ int** simulatedAnnealing(t_estado *estado){
    int mudancas = 1;
 
    configuraParametros(estado->linhas, estado->colunas, &temperatura_inicial, &temperatura_final,
-                                                                  &taxa_resfriamento, &iteracoes, &mudancas);
+                                                      &taxa_resfriamento, &iteracoes, &mudancas);
 
    //printf("\nParametros:\n %f\n%f\n%f\n%d\n%d\n", temperatura_inicial, temperatura_final, taxa_resfriamento, iteracoes, mudancas);
    
-   int **melhor_estado = malloc(estado->linhas * sizeof(int*));
-   int **estado_atual = malloc(estado->linhas * sizeof(int*));
-   int **estado_vizinho = malloc(estado->linhas * sizeof(int*));
+   uint8_t **melhor_estado = malloc(estado->linhas * sizeof(uint8_t*));
+   uint8_t **estado_atual = malloc(estado->linhas * sizeof(uint8_t*));
+   uint8_t **estado_vizinho = malloc(estado->linhas * sizeof(uint8_t*));
    
    for(int i = 0; i < estado->linhas; i++){
-      melhor_estado[i] = malloc(estado->colunas * sizeof(int));
-      estado_atual[i] = malloc(estado->colunas * sizeof(int));
-      estado_vizinho[i] = malloc(estado->colunas * sizeof(int));
+      melhor_estado[i] = malloc(estado->colunas * sizeof(uint8_t));
+      estado_atual[i] = malloc(estado->colunas * sizeof(uint8_t));
+      estado_vizinho[i] = malloc(estado->colunas * sizeof(uint8_t));
    }
 
    for (int i = 0; i < estado->linhas; i++){
       for (int j = 0; j < estado->colunas; j++){ //Gera um estado aleatorio
-            estado_atual[i][j] = (rand() % 3 == 0) ? 1 : 0;
+            estado_atual[i][j] = (rand() % 2 == 0) ? 1 : 0;
             melhor_estado[i][j] = 0;
       }
    }
@@ -437,7 +246,6 @@ int** simulatedAnnealing(t_estado *estado){
          geraEstadoVizinho(estado_atual, estado_vizinho, estado->linhas, estado->colunas, mudancas);
 
          double custo_vizinho = calculaCusto(estado_vizinho, estado->atual, estado->linhas, estado->colunas);
-         //int num_vivas_vizinho = contaCelulasVivas(estado_vizinho, estado->linhas, estado->colunas);
 
          if( custo_vizinho < melhor_custo ||
             (rand() / (double)RAND_MAX) < exp((melhor_custo - custo_vizinho) / temperatura) ){ //Probabilidade de ceitar o pior
@@ -446,36 +254,101 @@ int** simulatedAnnealing(t_estado *estado){
                   estado_atual[i][j] = estado_vizinho[i][j];
 
             melhor_custo = custo_vizinho;
-            
+             
             // Atualiza melhor estado
             for (int i = 0; i < estado->linhas; i++)
                for (int j = 0; j < estado->colunas; j++) 
-                     melhor_estado[i][j] = estado_atual[i][j];    
+                     melhor_estado[i][j] = estado_atual[i][j];   
          }
       }
       temperatura *= taxa_resfriamento;
    }
-   
 
-   for(int i = 0; i < estado->linhas; i++){
-         free(estado_atual[i]);
-         free(estado_vizinho[i]);
-   }
-      free(estado_atual);
-      free(estado_vizinho);
+   freeMatriz(estado_atual, estado->linhas);
+   freeMatriz(estado_vizinho, estado->linhas);
    
    return melhor_estado;
+}
+
+uint8_t** hillClimbing(uint8_t **estado_base, uint8_t **estado_objetivo, int linhas, int colunas) {
+   uint8_t **melhor_estado = malloc(linhas * sizeof(uint8_t*));
+   uint8_t **estado_atual = malloc(linhas * sizeof(uint8_t*));
+   uint8_t **estado_vizinho = malloc(linhas * sizeof(uint8_t*));
+   
+   for(int i = 0; i < linhas; i++){
+      melhor_estado[i] = malloc(colunas * sizeof(uint8_t));
+      estado_atual[i] = malloc(colunas * sizeof(uint8_t));
+      estado_vizinho[i] = malloc(colunas * sizeof(uint8_t));
+
+      memcpy(estado_atual[i], estado_base[i], colunas * sizeof(uint8_t));
+      memcpy(melhor_estado[i], estado_base[i], colunas * sizeof(uint8_t));
+   } 
+   
+   int max_iteracoes = linhas * colunas * 10;
+   int iteracoes_sem_melhora = 0;
+   double melhor_custo = calculaCusto(estado_base, estado_objetivo, linhas, colunas);
+   
+   for (int iteracao = 0; iteracao < max_iteracoes; iteracao++) {
+      int i_mudanca = rand() % linhas;
+      int j_mudanca = rand() % colunas;
+      
+      for(int i = 0; i < linhas; i++)
+         for(int j = 0; j < colunas; j++)
+               estado_vizinho[i][j] = estado_atual[i][j];
+
+      estado_vizinho[i_mudanca][j_mudanca] = 1 - estado_vizinho[i_mudanca][j_mudanca];
+
+      double custo_vizinho = calculaCusto(estado_vizinho, estado_objetivo, linhas, colunas);
+      
+      if (custo_vizinho < melhor_custo) {
+         for(int i = 0; i < linhas; i++)
+            for(int j = 0; j < colunas; j++)
+               estado_atual[i][j] = estado_vizinho[i][j];
+         
+         for(int i = 0; i < linhas; i++)
+            for(int j = 0; j < colunas; j++)
+               melhor_estado[i][j] = estado_vizinho[i][j];
+         
+         melhor_custo = custo_vizinho;
+         iteracoes_sem_melhora = 0;
+      } else {
+         iteracoes_sem_melhora++;
+      }
+
+      if (iteracoes_sem_melhora > linhas * colunas) {
+         break;
+      }
+   }
+    
+   freeMatriz(estado_atual, linhas);
+   freeMatriz(estado_vizinho, linhas);
+    
+   return melhor_estado;
+}
+
+int setTentativas(int tam){
+   if (tam <= 144)
+      return 10;
+   else if(tam <=225)
+      return 5;
+   else if(tam <= 350)
+      return 3;
+   else
+      return 1;
 }
 
 int main() {
    srand(time(NULL));
 
-   int linhas, colunas;
-   //int max_tentativas = 10;
-   int** matriz = lerMatriz(&linhas, &colunas);
    char *nome_arquivo = "teste.txt";
 
-   // Criacao do estado atual
+   int linhas, colunas;
+
+   uint8_t **estado_anterior = NULL;
+   uint8_t **estado_refinado = NULL;
+   uint8_t** matriz = lerMatriz(&linhas, &colunas);
+
+   //Criacao do estado atual
    t_estado estado_atual = {
       matriz,
       linhas,
@@ -484,25 +357,51 @@ int main() {
 
    clock_t t;
    t = clock();
-   int** estado_anterior = simulatedAnnealing(&estado_atual);
-   imprimeMatriz(estado_anterior, linhas, colunas, nome_arquivo);
 
-   printf("\n\nHill Climbing:\n");
+   uint8_t** melhor_estado_global = NULL;
+   int menor_num_celulas_vivas = linhas * colunas;
+   int num_celulas_vivas = linhas * colunas;
+   int max_tentativas = setTentativas( (linhas * colunas) );
 
-   int** melhor_estado_HC = hillClimbing(&estado_atual, estado_anterior);
-   imprimeMatriz(melhor_estado_HC, linhas, colunas, nome_arquivo);
+   for (int tentativa = 0; tentativa < max_tentativas; tentativa++) {
+      
+      estado_anterior = simulatedAnnealing(&estado_atual);
+      estado_refinado = hillClimbing(estado_anterior, matriz, linhas, colunas);
+
+      //printf("\nTentativa: %i\n", tentativa+1);
+      //printf("\nTempera:\n");
+      //imprimeMatriz(estado_anterior, linhas, colunas, nome_arquivo);
+
+      //printf("\nHill Climbing:\n");
+      //imprimeMatriz(estado_refinado, linhas, colunas, nome_arquivo);
+
+      num_celulas_vivas = contaCelulasVivas(estado_refinado, linhas, colunas);
+
+      if(num_celulas_vivas < menor_num_celulas_vivas){
+         if (melhor_estado_global != NULL)
+            freeMatriz(melhor_estado_global, linhas);
+      
+         melhor_estado_global = estado_refinado;
+         menor_num_celulas_vivas = num_celulas_vivas;
+      } else {
+         freeMatriz(estado_refinado, linhas);
+      }
+
+      freeMatriz(estado_anterior, linhas);
+   }
+   
+   imprimeMatriz(melhor_estado_global, linhas, colunas, nome_arquivo);
 
    t = clock() - t;
    double time_taken = ((double)t / CLOCKS_PER_SEC);
 
-   printf("Tempo:\t %f", time_taken);
+   printf("Tempo:\t %f\n", time_taken);
 
-   system("gcc teste.c");
-   system("./a.out < teste.txt");
+   //system("gcc teste.c");
+   //system("./a.out < teste.txt");
 
    freeMatriz(matriz, linhas);
-   freeMatriz(estado_anterior, linhas);
-   freeMatriz(melhor_estado_HC, linhas);
+   freeMatriz(melhor_estado_global, linhas);
    
    return 0;
 }
