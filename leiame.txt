@@ -5,6 +5,8 @@
 #  Prof. Dr. Fabiano Silva                      #
 #################################################
 
+github: https://github.com/raphaelsurmacz/JogoDaVida/
+
 Compilação Exemplo:
    make
    ./main < entrada.txt
