@@ -21,30 +21,14 @@ typedef struct{
    int colunas;
 } t_estado;
 
-void imprimeMatriz(uint8_t** matriz, int linhas, int colunas, char *nome_arquivo){
-
-   FILE *arquivo = fopen(nome_arquivo, "w");
-   fprintf(arquivo, "%d %d\n", linhas, colunas);
-   fclose(arquivo);
-
-
-   FILE *arquivo2 = fopen(nome_arquivo, "a");
-
+void imprimeMatriz(uint8_t** matriz, int linhas, int colunas){
+   printf("%d %d\n", linhas, colunas);
    for(int i = 0; i < linhas; i++){
       for(int j = 0; j < colunas; j++) {
          printf("%d ", matriz[i][j]);
       }
       printf("\n");
    }
-
-   for(int i = 0; i < linhas; i++){
-      for(int j = 0; j < colunas; j++) {
-         fprintf(arquivo2, "%d ", matriz[i][j]);
-      }
-      fprintf(arquivo2, "\n");
-   }
-
-   fclose(arquivo2);
 }
 
 uint8_t** lerMatriz(int* linhas, int* colunas){
@@ -339,8 +323,6 @@ int setTentativas(int tam){
 int main() {
    srand(time(NULL));
 
-   char *nome_arquivo = "teste.txt";
-
    int linhas, colunas;
 
    uint8_t **estado_anterior = NULL;
@@ -354,8 +336,8 @@ int main() {
       colunas
    }; 
 
-   clock_t t;
-   t = clock();
+   //clock_t t;
+   //t = clock();
 
    uint8_t** melhor_estado_global = NULL;
    int menor_num_celulas_vivas = linhas * colunas;
@@ -366,12 +348,14 @@ int main() {
       
       estado_anterior = simulatedAnnealing(&estado_atual);
 
-      //printf("\nTentativa: %i\n", tentativa+1);
-      //printf("\nTempera:\n");
-      //imprimeMatriz(estado_anterior, linhas, colunas, nome_arquivo);
+   /*
+      printf("\nTentativa: %i\n", tentativa+1);
+      printf("\nTempera:\n");
+      imprimeMatriz(estado_anterior, linhas, colunas);
 
-      //printf("\nHill Climbing:\n");
-      //imprimeMatriz(estado_refinado, linhas, colunas, nome_arquivo);
+      printf("\nHill Climbing:\n");
+      imprimeMatriz(estado_refinado, linhas, colunas);
+   */
 
       num_celulas_vivas = contaCelulasVivas(estado_anterior, linhas, colunas);
 
@@ -387,15 +371,12 @@ int main() {
    }
    
    estado_refinado = hillClimbing(melhor_estado_global, matriz, linhas, colunas);
-   imprimeMatriz(estado_refinado, linhas, colunas, nome_arquivo);
+   imprimeMatriz(estado_refinado, linhas, colunas);
 
-   t = clock() - t;
-   double time_taken = ((double)t / CLOCKS_PER_SEC);
+   //t = clock() - t;
+   //double time_taken = ((double)t / CLOCKS_PER_SEC);
 
-   printf("Tempo:\t %f\n", time_taken);
-
-   system("gcc teste.c");
-   system("./a.out < teste.txt");
+   //printf("Tempo:\t %f\n", time_taken);
 
    freeMatriz(matriz, linhas);
    freeMatriz(melhor_estado_global, linhas);
