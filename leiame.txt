@@ -1,0 +1,116 @@
+#################################################
+#  Raphael A. Surmacz (GRR20213405)             #
+#  Isabela Barata (GRR20213395)                 #
+#                                               #
+#  Prof. Dr. Fabiano Silva                      #
+#################################################
+
+Este relatório descreve a implementação em main.c para reverter um passo do Jogo da Vida, utilizando os algoritmos
+Simulated Annealing (Têmpera Simulada) e Hill Climbing (Subida de Encosta).
+
+Regras do Jogo da Vida
+  - toda célula morta com exatamente três vizinhos vivos torna-se viva;
+  - toda célula viva com menos de dois vizinhos vivos morre;
+  - toda célula viva com mais de três vizinhos vivos morre;
+  - toda célula viva com dois ou três vizinhos vivos permanece viva.
+
+Leitura e Manipulação da Matriz:
+
+O programa inicia lendo a matriz de entrada do estado atual do Jogo da Vida através da função lerMatriz(). As dimensões
+(linhas e colunas) são lidas primeiro, seguidas pelos valores das células (0 para morta, 1 para viva). A função aloca
+dinamicamente a matriz e a preenche com os valores lidos. A função imprimeMatriz() grava a matriz em um arquivo e a imprime
+no console. A liberação da memória alocada é feita pela função freeMatriz().
+
+Funções Auxiliares:
+
+* contaVizinhosVivos(): Calcula o número de vizinhos vivos para uma célula específica, considerando as bordas da matriz.
+* geraProximoEstado(): Gera o próximo estado do Jogo da Vida a partir de um estado atual, aplicando as regras do jogo.
+* contaCelulasVivas(): Conta o número total de células vivas em uma matriz.
+
+Função de Custo ( calculaCusto() ):
+
+Esta função é crucial para os algoritmos de otimização. Ela avalia quão "bom" é um estado anterior candidato. Ela gera o
+próximo estado a partir do estado anterior candidato e o compara com o estado atual (objetivo). A função utiliza uma
+combinação ponderada dos seguintes fatores para calcular o custo:
+
+* Diferenças: Número de células diferentes entre o próximo estado (gerado a partir do candidato) e o estado atual (objetivo).
+* Células Vivas: Número de células vivas no estado anterior candidato. Menos células vivas geralmente implicam em um estado
+   anterior mais provável.
+* Estabilidade: Mede quão estável é o estado anterior candidato. Um estado mais estável tende a gerar um próximo estado
+   mais parecido com o estado atual.
+* Proximidade das Diferenças: Considera a proximidade das células que são diferentes entre o próximo estado (gerado a
+   partir do candidato) e o estado atual. Diferenças agrupadas indicam uma menor probabilidade de ser um estado anterior válido.
+
+
+# Simulated Annealing (simulatedAnnealing()):
+
+Este algoritmo busca um bom estado anterior, permitindo movimentos "ruins" (que aumentam o custo) com uma certa
+probabilidade, que diminui com o tempo (temperatura).
+
+1. Inicialização: Define os parâmetros da têmpera (temperatura inicial, temperatura final, taxa de resfriamento, número
+   de iterações e número de mudanças por iteração), configurados dinamicamente pela função configuraParametros() com base
+   no tamanho da matriz de entrada. Inicializa um estado aleatório.
+
+2. Loop principal: Enquanto a temperatura for maior que a temperatura final:
+    * Gera um estado vizinho, realizando um número aleatório de mudanças (mudancas) no estado atual.
+    * Calcula o custo do vizinho.
+    * Aceita o vizinho se ele tiver um custo menor ou com uma probabilidade dada por exp((melhor_custo - custo_vizinho) / temperatura).
+    * Diminui a temperatura.
+      
+      # Cálculo:
+         Diferença de custos: melhor_custo - custo_vizinho = 10 - 12 = -2
+         Divisão pela temperatura: (melhor_custo - custo_vizinho) / temperatura = -2 / 1 = -2
+         Exponencial: exp(-2) ≈ 0.135
+
+         Neste cenário, a probabilidade de aceitar a solução vizinha, mesmo que ela seja pior (custo maior) que a melhor
+         solução atual, é de aproximadamente 13.5%.
+
+
+
+# Hill Climbing (hillClimbing()):
+
+Este algoritmo refina a solução encontrada pelo Simulated Annealing, buscando o melhor vizinho em cada iteração.
+
+1. Inicialização: Define o estado inicial como a solução do Simulated Annealing.
+2. Loop principal: Até um número máximo de iterações ou até atingir um platô (sem melhorias por um certo número de iterações):
+    * Gera um vizinho, modificando uma única célula aleatória.
+    * Calcula o custo do vizinho.
+    * Se o custo do vizinho for menor, atualiza o estado atual.
+
+main():
+
+A função main() coordena a execução do programa.
+
+1. Lê a matriz do estado atual.
+2. Executa o Simulated Annealing múltiplas vezes (max_tentativas), configurado pela função setTentativas(), mantendo o
+   melhor estado encontrado.
+3. Refina o melhor estado com Hill Climbing.
+4. Libera a memória alocada.
+
+Exemplo:
+Suponha que a entrada seja uma matriz 3x3 com o seguinte estado:
+
+0 1 0
+0 1 0
+0 0 1
+
+O programa buscará um estado anterior que, ao aplicar as regras do Jogo da Vida, resulte nesse estado. Um possível estado
+anterior seria:
+
+0 0 0
+1 1 1
+0 0 0
+ programa imprime esse estado anterior (ou um similar com custo baixo).
+
+
+Melhorias da Implementação:
+
+Professor, temos algumas ideias e gostaríamos da sua visão crítica sobre melhorias no nosso trabalho!
+Na nossa implementação, conseguimos alguns diferenciais:
+
+1. Parametrização Flexível: Criamos uma configuração que se adapta ao tamanho da matriz. Será que dá pra tornar isso ainda
+   mais inteligente?
+2. Múltiplas Tentativas: Rodamos o Simulated Annealing várias vezes e refinamos com Hill Climbing. Como poderíamos melhorar
+   essa estratégia para encontrar estados anteriores ainda melhores?
+3. Função de Custo Complexa: Misturamos diferentes fatores no cálculo do custo - diferenças de células, número de células
+   vivas, estabilidade do estado. O que poderia ser alterado para obter um resultado melhor?

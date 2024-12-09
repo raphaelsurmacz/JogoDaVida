@@ -47,7 +47,7 @@ void imprimeMatriz(uint8_t** matriz, int linhas, int colunas, char *nome_arquivo
    fclose(arquivo2);
 }
 
-int8_t** lerMatriz(int* linhas, int* colunas){
+uint8_t** lerMatriz(int* linhas, int* colunas){
    scanf("%d %d", linhas, colunas);
 
    uint8_t **matriz = malloc(*linhas * sizeof(uint8_t*));
@@ -181,25 +181,25 @@ void configuraParametros(int linhas, int colunas, double *temperatura_inicial, d
                                                 double *taxa_resfriamento, int *iteracoes, int *mudancas){
    int tam = linhas * colunas;
    if (tam <= 100){  //ate 10x10
-      *temperatura_inicial = 2000.0;   // ~ 0.95 de probabilidade da escolha de um pior
+      *temperatura_inicial = 500.0;   // ~ 0.97 de probabilidade da escolha de um pior com diff custo 10
       *temperatura_final = 0.0001;
       *taxa_resfriamento = 0.98;
       *iteracoes = 5 * tam;
       *mudancas = (tam / 20 > 5) ? 20 : 5;  
    }else if(tam <= 225){   //ate 15x15
-      *temperatura_inicial = 3000.0;   // ~ 0.96 de probabilidade da escolha de um pior
+      *temperatura_inicial = 600.0;   // ~ 0.98 de probabilidade da escolha de um pior com diff custo 10
       *temperatura_final = 0.0001;
       *taxa_resfriamento = 0.98;
       *iteracoes = 7 * tam;
       *mudancas = (tam / 20 > 10) ? 20 : 10;  
    }else if(tam <= 400){   //ate 20x20
-      *temperatura_inicial = 4000.0;   // ~ 0.97 de probabilidade da escolha de um pior
+      *temperatura_inicial = 800.0;   // ~ 0.98 de probabilidade da escolha de um pior com diff custo 10
       *temperatura_final = 0.001;
       *taxa_resfriamento = 0.98;
       *iteracoes = 8 * tam;
       *mudancas = (tam / 20 > 15) ? 20 : 15;  
    }else{
-      *temperatura_inicial = 5000.0;   // ~ 0.98/0.99 de probabilidade da escolha de um pior
+      *temperatura_inicial = 1000.0;   // ~ 0.99 de probabilidade da escolha de um pior com diff custo 10
       *temperatura_final = 0.01;
       *taxa_resfriamento = 0.99;
       *iteracoes = 10 * tam;
@@ -239,7 +239,6 @@ uint8_t** simulatedAnnealing(t_estado *estado){
 
    double temperatura = temperatura_inicial;
    double melhor_custo = calculaCusto(estado_atual, estado->atual, estado->linhas, estado->colunas);
-   //int melhor_num_vivas = contaCelulasVivas(estado_atual, estado->linhas, estado->colunas);
 
    while (temperatura > temperatura_final){
       for (int i = 0; i < iteracoes; i++){
@@ -366,7 +365,6 @@ int main() {
    for (int tentativa = 0; tentativa < max_tentativas; tentativa++) {
       
       estado_anterior = simulatedAnnealing(&estado_atual);
-      estado_refinado = hillClimbing(estado_anterior, matriz, linhas, colunas);
 
       //printf("\nTentativa: %i\n", tentativa+1);
       //printf("\nTempera:\n");
@@ -375,30 +373,29 @@ int main() {
       //printf("\nHill Climbing:\n");
       //imprimeMatriz(estado_refinado, linhas, colunas, nome_arquivo);
 
-      num_celulas_vivas = contaCelulasVivas(estado_refinado, linhas, colunas);
+      num_celulas_vivas = contaCelulasVivas(estado_anterior, linhas, colunas);
 
       if(num_celulas_vivas < menor_num_celulas_vivas){
          if (melhor_estado_global != NULL)
             freeMatriz(melhor_estado_global, linhas);
       
-         melhor_estado_global = estado_refinado;
+         melhor_estado_global = estado_anterior;
          menor_num_celulas_vivas = num_celulas_vivas;
       } else {
-         freeMatriz(estado_refinado, linhas);
+         freeMatriz(estado_anterior, linhas);
       }
-
-      freeMatriz(estado_anterior, linhas);
    }
    
-   imprimeMatriz(melhor_estado_global, linhas, colunas, nome_arquivo);
+   estado_refinado = hillClimbing(melhor_estado_global, matriz, linhas, colunas);
+   imprimeMatriz(estado_refinado, linhas, colunas, nome_arquivo);
 
    t = clock() - t;
    double time_taken = ((double)t / CLOCKS_PER_SEC);
 
    printf("Tempo:\t %f\n", time_taken);
 
-   //system("gcc teste.c");
-   //system("./a.out < teste.txt");
+   system("gcc teste.c");
+   system("./a.out < teste.txt");
 
    freeMatriz(matriz, linhas);
    freeMatriz(melhor_estado_global, linhas);
