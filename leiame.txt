@@ -5,6 +5,10 @@
 #  Prof. Dr. Fabiano Silva                      #
 #################################################
 
+Compilação Exemplo:
+   make
+   ./main < entrada.txt
+
 Este relatório descreve a implementação em main.c para reverter um passo do Jogo da Vida, utilizando os algoritmos
 Simulated Annealing (Têmpera Simulada) e Hill Climbing (Subida de Encosta).
 
